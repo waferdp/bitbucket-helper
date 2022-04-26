@@ -83,7 +83,7 @@ def writeConfluence(args, repos):
         text = createHeading()
         text += createLists(repos)
 
-        confluence.update_page(page_id, 'Tengil Backend repos', text, type='page', representation='wiki', minor_edit=False)
+        confluence.update_page(page_id, page_title, text, type='page', representation='wiki', minor_edit=False)
     else:
         print("Could not find page " + page_title + " in MyBusiness, please create one in appropriate location")
 
