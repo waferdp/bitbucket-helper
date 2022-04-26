@@ -78,7 +78,7 @@ def writeConfluence(args, repos):
     space = 'mybusiness'
     page_title = args.team.capitalize() + ' Backend repos'    
     if confluence.page_exists(space=space, title=page_title):
-        page_id = confluence.get_page_id(space='mybusiness', title='Tengil Backend repos')
+        page_id = confluence.get_page_id(space='mybusiness', title=page_title)
         page = confluence.get_page_by_id(page_id, expand="body.view")
         text = createHeading()
         text += createLists(repos)
