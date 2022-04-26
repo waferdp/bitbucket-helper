@@ -38,8 +38,7 @@ def categorize(bitbucket, repo_slug):
     return category
 
 def createHeading():
-    text = 'Instructions of how the backend repositories work and how to test them in the GUI.\n  '
-    text += 'h3. These are our repositories by the date '
+    text = 'h3. These are our repositories at date: '
     text += datetime.today().strftime('%Y-%m-%d') + '\n  '
     return text
 
