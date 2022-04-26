@@ -1,6 +1,9 @@
+from distutils.log import error
+from tokenize import String
 from atlassian import Bitbucket #atlassian-python-api
 from atlassian import Confluence #atlassian-python-api
 from datetime import datetime
+import argparse
 
 project_key = 'DC-MYBDBE'
 
@@ -18,7 +21,7 @@ def getRepoNameCategory(repo_slug):
         return category
     return None
 
-def getLabelCategory(repo_slug):
+def getLabelCategory(bitbucket, repo_slug):
     labels = bitbucket.get_repo_labels(project_key, repo_slug)
     for label in labels['values']:
         if isCategory(label['name']):
@@ -26,10 +29,10 @@ def getLabelCategory(repo_slug):
     return None
 
 
-def categorize(repo_slug):
+def categorize(bitbucket, repo_slug):
     category = getRepoNameCategory(repo_slug)
     if category is None:
-        category = getLabelCategory(repo_slug)
+        category = getLabelCategory(bitbucket, repo_slug)
     if category is None:
         category = "other"
     return category
@@ -45,32 +48,52 @@ def createLists(repos):
     for category in repos:
         text += 'h3. ' + category.capitalize() + '\n  '
         for repo in repos[category]:
-            text += repo + '\n  '
+            text += '[' + repo + '|https://diva.teliacompany.net/bitbucket/projects/DC-MYBDBE/repos/' + repo + '/browse]\n  '
     return text
 
-bitbucket = Bitbucket(url= 'https://diva.teliacompany.net/bitbucket',
-            username= 'username',
-            password= 'password')
+def getFromBitbucket(args):
+    bitbucket = Bitbucket(url= 'https://diva.teliacompany.net/bitbucket',
+                username= args.username,
+                password= args.password)
 
-repos = bitbucket.repo_list(project_key)
+    repos = bitbucket.repo_list(project_key)
 
-tengilrepos = {}
-for repo in repos:
-    if repo['description'].startswith('Tengil'):
-        category = categorize(repo['slug'])
-        if category not in tengilrepos:
-            tengilrepos[category] = []
-        
-        tengilrepos[category].append(repo['slug'])
+    teamRepos = {}
+    for repo in repos:
+        if repo['description'].lower().startswith(args.team.lower()):
+            category = categorize(bitbucket, repo['slug'])
+            if category not in teamRepos:
+                teamRepos[category] = []
+            
+            teamRepos[category].append(repo['slug'])
 
-confluence = Confluence(url= 'https://diva.teliacompany.net/confluence',
-            username= 'username',
-            password= 'password')
+    return teamRepos
 
-page_id = confluence.get_page_id(space='mybusiness', title='Tengil Backend repos')
-page = confluence.get_page_by_id(page_id, expand="body.view")
+def writeConfluence(args, repos):
 
-text = createHeading()
-text += createLists(tengilrepos)
+    confluence = Confluence(url= 'https://diva.teliacompany.net/confluence',
+                username= args.username,
+                password= args.password)
 
-#confluence.update_page(page_id, 'Tengil Backend repos', text, type='page', representation='wiki', minor_edit=False)
+    space = 'mybusiness'
+    page_title = args.team.capitalize() + ' Backend repos'    
+    if confluence.page_exists(space=space, title=page_title):
+        page_id = confluence.get_page_id(space='mybusiness', title='Tengil Backend repos')
+        page = confluence.get_page_by_id(page_id, expand="body.view")
+        text = createHeading()
+        text += createLists(repos)
+
+        confluence.update_page(page_id, 'Tengil Backend repos', text, type='page', representation='wiki', minor_edit=False)
+    else:
+        print("Could not find page " + page_title + " in MyBusiness, please create one in appropriate location")
+
+parser = argparse.ArgumentParser(description='Get data from Bitbucket and update Confluence')
+parser.add_argument('-u', dest='username', required=True, help='username for both bitbucket and confluence')
+parser.add_argument('-p', dest='password', required=True, help='password for both bitbucket and confluence')
+parser.add_argument('-t', dest='team', required=True, help='Team name, used for bitbucket and confluence structure')
+
+args = parser.parse_args()
+
+repos = getFromBitbucket(args= args)
+writeConfluence(args=args, repos=repos)
+
