@@ -73,17 +73,15 @@ def writeConfluence(args, repos):
     confluence = Confluence(url= 'https://diva.teliacompany.net/confluence',
                 username= args.username,
                 password= args.password)
-
+    text = createHeading()
+    text += createLists(repos)
     space = 'mybusiness'
     page_title = args.team.capitalize() + ' Backend repos'    
     if confluence.page_exists(space=space, title=page_title):
         page_id = confluence.get_page_id(space='mybusiness', title=page_title)
-        page = confluence.get_page_by_id(page_id, expand="body.view")
-        text = createHeading()
-        text += createLists(repos)
-
         confluence.update_page(page_id, page_title, text, type='page', representation='wiki', minor_edit=False)
     else:
+        print (text)
         print("Could not find page " + page_title + " in MyBusiness, please create one in appropriate location")
 
 parser = argparse.ArgumentParser(description='Get data from Bitbucket and update Confluence')
